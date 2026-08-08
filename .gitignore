@@ -1,0 +1,36 @@
+# Python
+__pycache__/
+*.py[codz]
+*.egg-info/
+.venv/
+env/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.ipynb_checkpoints/
+
+# Claude Code
+CLAUDE.md
+.claude/
+
+# Datasets
+/data/
+*.h5ad
+*.h5
+*.loom
+*.mtx
+*.mtx.gz
+*.csv.gz
+
+# Model checkpoints / weights
+checkpoints/
+*.pt
+*.ckpt
+*.pth
+
+# Logs / experiment tracking
+logs/
+wandb/
+lightning_logs/
+mlruns/
+*.tfevents.*

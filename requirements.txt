@@ -1,0 +1,34 @@
+# Core scientific stack
+numpy
+pandas
+scipy
+scikit-learn
+
+# Single-cell
+scanpy
+anndata
+cellxgene-census
+
+# Deep learning
+lightning
+torchmetrics
+
+# Experiment tracking & config
+hydra-core
+omegaconf
+wandb
+
+# Plotting
+matplotlib
+seaborn
+umap-learn
+
+# Utilities
+tqdm
+rich
+
+# Dev / testing
+pytest
+pytest-cov
+black
+ruff

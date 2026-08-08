@@ -14,7 +14,13 @@ CLAUDE.md
 .claude/
 
 # Datasets
-/data/
+/data/*
+!/data/raw/
+!/data/processed/
+/data/raw/*
+!/data/raw/.gitkeep
+/data/processed/*
+!/data/processed/.gitkeep
 *.h5ad
 *.h5
 *.loom
@@ -22,14 +28,12 @@ CLAUDE.md
 *.mtx.gz
 *.csv.gz
 
-# Model checkpoints / weights
-checkpoints/
+# Experiment outputs (checkpoints, logs, run configs)
+/experiments/*
+!/experiments/.gitkeep
 *.pt
 *.ckpt
 *.pth
-
-# Logs / experiment tracking
-logs/
 wandb/
 lightning_logs/
 mlruns/

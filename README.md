@@ -155,6 +155,11 @@ As expected, performance drops from seen to unseen types, but the drop isn't
 catastrophic — the model retains a meaningful chunk of its clustering quality on cell
 types it never saw a label for.
 
+<p align="center">
+  <img src="docs/images/blood_umap_test_seen.png" width="49%" alt="Blood test_seen UMAP" />
+  <img src="docs/images/blood_umap_test_unseen.png" width="49%" alt="Blood test_unseen UMAP" />
+</p>
+
 **Brain** (`contrastive_supcon_brain`, run `cpm_baseline`, 50 epochs, CPM-only
 preprocessing, all ~19.5k protein-coding genes, trained on CPU — the machine's GPU is
 currently unavailable at the driver level, unrelated to this project):
@@ -173,6 +178,11 @@ Final-epoch test evaluation:
 |-------------|-----------:|------:|------:|
 | test_seen   | 0.636      | 0.587 | 0.816 |
 | test_unseen | 0.081      | 0.394 | 0.591 |
+
+<p align="center">
+  <img src="docs/images/brain_umap_test_seen.png" width="49%" alt="Brain test_seen UMAP" />
+  <img src="docs/images/brain_umap_test_unseen.png" width="49%" alt="Brain test_unseen UMAP" />
+</p>
 
 On `test_seen`, brain clearly outperforms blood's best silhouette (0.636 vs. 0.294) —
 expected, since brain cell types (neurons, astrocytes, oligodendrocytes, microglia, ...)

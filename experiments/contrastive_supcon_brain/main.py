@@ -6,7 +6,7 @@ oligodendrocytes, microglia — used as a cleaner-separation reference point nex
 Usage:
     python experiments/contrastive_supcon_brain/main.py --run-name baseline --epochs 50
 
-Pipeline: raw h5ad -> CPM normalize/log1p/HVG/scale (cached) -> seen/unseen split (cached)
+Pipeline: raw h5ad (protein-coding genes only) -> CPM normalize (cached) -> seen/unseen split (cached)
         -> SupCon training (two augmented views per cell, label-aware positives)
         -> TensorBoard scalars (loss, silhouette, ARI, NMI) + UMAP figures per split.
 """
@@ -37,7 +37,6 @@ def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("--run-name", default=None)
     p.add_argument("--raw-path", default=str(RAW_DIR / "brain_homo_sapiens.h5ad"))
-    p.add_argument("--n-top-genes", type=int, default=2000)
     p.add_argument("--min-cells-per-type", type=int, default=50)
     p.add_argument("--unseen-frac", type=float, default=0.2)
     p.add_argument("--val-frac", type=float, default=0.1)
@@ -137,8 +136,8 @@ def main() -> None:
     (run_dir / "config.json").write_text(json.dumps(vars(args), indent=2))
 
     raw_stem = Path(args.raw_path).stem
-    processed_path = PROCESSED_DIR / f"{raw_stem}_hvg{args.n_top_genes}_scaled.h5ad"
-    adata = preprocess(Path(args.raw_path), n_top_genes=args.n_top_genes, cache_path=processed_path, force=args.force_preprocess)
+    processed_path = PROCESSED_DIR / f"{raw_stem}_cpm.h5ad"
+    adata = preprocess(Path(args.raw_path), cache_path=processed_path, force=args.force_preprocess)
     del adata  # only needed to materialize the cache; splits/datasets re-read from disk
 
     split_cfg = SplitConfig(

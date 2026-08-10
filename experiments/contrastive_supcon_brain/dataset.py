@@ -1,7 +1,7 @@
 """Data loading, preprocessing, and seen/unseen splitting for contrastive training.
 
 Pipeline:
-    raw h5ad -> normalize/log1p/HVG/scale -> cache processed h5ad
+    raw h5ad (already protein-coding only) -> CPM normalize -> cache processed h5ad
              -> split cell types into seen / unseen
              -> split seen cells into train / val / test_seen (stratified by cell_type)
              -> unseen-type cells all go to test_unseen
@@ -37,21 +37,17 @@ class SplitConfig:
 
 def preprocess(
     raw_path: Path,
-    n_top_genes: int = 2000,
     cache_path: Path | None = None,
     force: bool = False,
 ) -> sc.AnnData:
-    """Normalize, log1p, select HVGs, scale. Cached to disk since it's deterministic."""
+    """CPM-normalize only. Raw file is already restricted to protein-coding genes
+    (see scripts/download_census.py). Cached to disk since it's deterministic."""
     if cache_path is not None and cache_path.exists() and not force:
         return sc.read_h5ad(cache_path)
 
     adata = sc.read_h5ad(raw_path)
     adata.layers["counts"] = adata.X.copy()
     sc.pp.normalize_total(adata, target_sum=1e6)  # CPM
-    sc.pp.log1p(adata)
-    sc.pp.highly_variable_genes(adata, n_top_genes=n_top_genes, batch_key="donor_id")
-    adata = adata[:, adata.var["highly_variable"]].copy()
-    sc.pp.scale(adata, max_value=10)
 
     if cache_path is not None:
         cache_path.parent.mkdir(parents=True, exist_ok=True)

@@ -128,6 +128,110 @@ python experiments/contrastive_supcon_brain/main.py --run-name <name> --epochs 5
 Add `--debug` to subsample every split down to a few thousand cells first — useful for
 catching bugs in seconds instead of minutes before committing to a full run.
 
+## Running your own experiment (e.g. a new tissue)
+
+Everything above describes what already exists. This section is for actually using the
+repo to try a new tissue or a new preprocessing/training configuration.
+
+### 1. Set up the environment
+
+```
+conda env create -f environment.yml
+conda activate sccontrast
+```
+
+### 2. Download a tissue
+
+`--tissue` must match a `tissue_general` value in the Census (e.g. `blood`, `brain`,
+`lung`, `heart`, `kidney`, ...). Check what's available and how many cells exist for a
+tissue before committing to a large download by first running with a small `--n-cells`
+and reading the printed cell-type breakdown, or by browsing the
+[Census tissue list](https://cellxgene.cziscience.com/) directly.
+
+```
+python scripts/download_census.py --tissue lung --n-cells 200000
+```
+
+This writes `data/raw/lung_homo_sapiens.h5ad`. First run is slower — it resolves gene
+biotypes via mygene.info to filter down to protein-coding genes, then caches that lookup
+to `data/processed/gene_biotypes_homo_sapiens.csv` for every subsequent download. Expect
+the download itself to take a while for large `--n-cells`; it's pulling real expression
+matrices over the network, not just metadata.
+
+### 3. Create a new experiment folder
+
+Each experiment is self-contained on purpose, so the easiest way to start a new one is
+to copy an existing folder and adjust it rather than trying to parametrize a single
+shared codebase over every possible tissue/preprocessing combination:
+
+```
+cp -r experiments/contrastive_supcon_brain experiments/contrastive_supcon_lung
+```
+
+Then, inside the new folder:
+
+- `dataset.py`: point `RAW_DIR` default filename at your new `.h5ad`, and decide on
+  preprocessing in `preprocess()` — CPM-only (brain's approach: keep all genes, simplest)
+  vs. CPM + log1p + HVG + scaling (blood's approach: fewer, more standardized features).
+  There's no universally correct choice; it's worth trying both for a new tissue and
+  comparing, the way this repo currently does across the two existing experiments.
+- `main.py`: update the `--raw-path` default and the module docstring, and reconsider
+  hyperparameters if the new tissue's cell count or gene dimensionality differs
+  substantially from blood/brain (e.g. `--batch-size`, `--hidden-dims`, `--embed-dim`).
+
+### 4. Smoke-test with `--debug` before committing to a full run
+
+```
+python experiments/contrastive_supcon_lung/main.py --run-name debug --debug --epochs 3
+```
+
+This subsamples every split to `--debug-n-cells` (default 4,000) so you catch shape
+mismatches, missing columns, or config typos in seconds rather than after a
+multi-hour run. Only move to a full run once this passes cleanly.
+
+### 5. Run the full training
+
+```
+python experiments/contrastive_supcon_lung/main.py --run-name baseline --epochs 50
+```
+
+Key flags worth knowing (see `main.py`'s `parse_args()` for the full list):
+
+- `--epochs`, `--batch-size`, `--lr` — standard training knobs.
+- `--unseen-frac` — fraction of cell types held out entirely (default 0.2); raise it for
+  a harder generalization test, lower it if a tissue has too few cell types to spare.
+- `--min-cells-per-type` — cell types with fewer cells than this are dropped rather than
+  split (default 50); raise it for noisy/rare-type-heavy tissues.
+- `--eval-every` — how often (in epochs) to compute embedding metrics and log UMAP
+  figures; these are the slow steps, so infrequent eval speeds up long runs.
+- `--force-preprocess` / `--force-splits` — bypass the cache and regenerate, e.g. after
+  editing `preprocess()` or `SplitConfig`.
+
+Training runs on GPU automatically if `torch.cuda.is_available()`, otherwise falls back
+to CPU (as brain's `cpm_baseline` run did — about 65s/epoch on 200k cells with 19.5k
+genes on CPU; expect roughly proportional scaling with cell count and gene count).
+
+### 6. Watch progress in TensorBoard
+
+```
+tensorboard --logdir experiments/contrastive_supcon_lung/runs
+```
+
+This surfaces everything logged during training: loss curves, per-split silhouette/ARI/
+NMI over epochs, UMAP scatter plots per split/epoch, weight/gradient histograms, class
+balance, and the same-class vs. different-class cosine similarity histograms.
+
+### 7. Find your results
+
+After a run finishes, `experiments/contrastive_supcon_lung/runs/<run-name>/` contains:
+
+- `best_model.pt` — the checkpoint with the highest validation silhouette seen during
+  training (what you'd load for downstream use).
+- `final_model.pt` — the weights at the last epoch.
+- `config.json` — every argument the run was launched with, for reproducibility.
+- `test_metrics.json` — final silhouette/ARI/NMI on `test_seen` and `test_unseen`.
+- `tensorboard/` — the full TensorBoard log directory.
+
 ## Results so far
 
 Each run tracks two kinds of "best": the **best checkpoint** (`best_model.pt`, the epoch

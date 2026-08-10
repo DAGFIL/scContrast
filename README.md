@@ -130,7 +130,21 @@ catching bugs in seconds instead of minutes before committing to a full run.
 
 ## Results so far
 
+Each run tracks two kinds of "best": the **best checkpoint** (`best_model.pt`, the epoch
+with the highest validation silhouette during training — this is normally the one you'd
+actually use downstream) and the **final-epoch test metrics** (`final_model.pt`,
+evaluated once on held-out `test_seen` / `test_unseen` after training ends). Both are
+reported below.
+
 **Blood** (`contrastive_supcon`, run `supcon_baseline`, 60 epochs, HVG-2000 preprocessing):
+
+Best validation checkpoint (reached at the final epoch, 60/60):
+
+| split | silhouette | ARI   | NMI   |
+|-------|-----------:|------:|------:|
+| val   | 0.296      | 0.504 | 0.745 |
+
+Final-epoch test evaluation:
 
 | split       | silhouette | ARI   | NMI   |
 |-------------|-----------:|------:|------:|
@@ -141,22 +155,41 @@ As expected, performance drops from seen to unseen types, but the drop isn't
 catastrophic — the model retains a meaningful chunk of its clustering quality on cell
 types it never saw a label for.
 
-**Brain** (`contrastive_supcon_brain`, run `cpm_baseline`, CPM-only preprocessing, all
-~19.5k protein-coding genes): training in progress (50 epochs on CPU, ~65s/epoch —
-the machine's GPU is currently unavailable at the driver level, unrelated to this
-project). Latest validation checkpoint (epoch 25/50):
+**Brain** (`contrastive_supcon_brain`, run `cpm_baseline`, 50 epochs, CPM-only
+preprocessing, all ~19.5k protein-coding genes, trained on CPU — the machine's GPU is
+currently unavailable at the driver level, unrelated to this project):
+
+Best validation checkpoint (reached at the final epoch — validation silhouette climbed
+monotonically for the last 25 epochs and hadn't plateaued yet, so more epochs would
+likely help further):
 
 | split | silhouette | ARI   | NMI   |
 |-------|-----------:|------:|------:|
-| val   | 0.598      | 0.790 | 0.830 |
+| val   | 0.639      | 0.589 | 0.828 |
 
-Already well ahead of blood's final numbers at the halfway point of training. This is
-expected more than it is a sign of a better setup: brain cell types (neurons,
-astrocytes, oligodendrocytes, microglia, ...) are more transcriptionally distinct from
-each other than most blood cell types are, so they're inherently easier to separate —
-brain was picked partly as this kind of "should be easy" reference point. Final
-test_seen / test_unseen numbers will be added here once training finishes
-(`experiments/contrastive_supcon_brain/runs/cpm_baseline/test_metrics.json`).
+Final-epoch test evaluation:
+
+| split       | silhouette | ARI   | NMI   |
+|-------------|-----------:|------:|------:|
+| test_seen   | 0.636      | 0.587 | 0.816 |
+| test_unseen | 0.081      | 0.394 | 0.591 |
+
+On `test_seen`, brain clearly outperforms blood's best silhouette (0.636 vs. 0.294) —
+expected, since brain cell types (neurons, astrocytes, oligodendrocytes, microglia, ...)
+are more transcriptionally distinct from each other than most blood cell types, so they
+were picked partly as this kind of "should be easy" reference point.
+
+The `test_unseen` picture is more interesting: silhouette collapses to 0.081 (worse than
+blood's 0.173), even though ARI/NMI hold up reasonably (0.394 / 0.591). That combination
+— clustering agreement still decent, but the embedding geometry itself much less
+separated by the raw silhouette measure — is consistent with dropping HVG selection and
+scaling: with all ~19.5k genes and no per-gene scaling, a handful of high-magnitude genes
+can dominate the distance geometry the augmentations and loss operate on, so unseen
+types tend to end up compressed into less cleanly separated regions even when a
+downstream clustering can still mostly untangle them. Worth testing whether reintroducing
+per-gene scaling (without HVG filtering, to keep the full gene set) recovers unseen-type
+separation without sacrificing the test_seen gains, and whether training brain past 50
+epochs pushes val silhouette meaningfully higher given it hadn't plateaued yet.
 
 ## Getting set up
 

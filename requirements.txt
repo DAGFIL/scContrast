@@ -8,6 +8,7 @@ scikit-learn
 scanpy
 anndata
 cellxgene-census
+mygene
 
 # Deep learning
 lightning
@@ -17,6 +18,7 @@ torchmetrics
 hydra-core
 omegaconf
 wandb
+tensorboard
 
 # Plotting
 matplotlib
@@ -26,6 +28,11 @@ umap-learn
 # Utilities
 tqdm
 rich
+
+# Notebooks
+jupyter
+ipykernel
+jupytext
 
 # Dev / testing
 pytest

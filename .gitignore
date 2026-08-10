@@ -28,9 +28,13 @@ CLAUDE.md
 *.mtx.gz
 *.csv.gz
 
-# Experiment outputs (checkpoints, logs, run configs)
+# Experiment outputs (checkpoints, logs, run configs, figures) are ignored;
+# experiment *code* (dataset.py, model.py, main.py, etc.) is tracked.
 /experiments/*
 !/experiments/.gitkeep
+!/experiments/*/
+/experiments/*/*
+!/experiments/*/*.py
 *.pt
 *.ckpt
 *.pth
